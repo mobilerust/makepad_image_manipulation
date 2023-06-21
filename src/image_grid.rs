@@ -13,41 +13,40 @@ live_design! {
 
     DrawBg = {{DrawBg}} {
         fn pixel(self) -> vec4 {
-            // for debugging:
-            // return #3;
             return #FDFDFD;
         }
     }
 
-    DrawImage = {{DrawImage}} {
-        <Image> {
-            image: (IMG_1),
-            image_scale: 0.08,
-            walk: {
-                margin: 0.0,
-                width:  Fill,
-                height: Fit,
-            },
-            layout: {padding: 0}
+    RotatingImage = {{RotatingImage}} {
+        image: <Image> {
+            walk: {width: 30, height: 30},
+            image: (IMG_1)
 
+            instance angle: 20.0
             draw_bg: {
+                instance angle: 20.0
+
+                fn rotate_2d_from_center(v: vec2, a: float) -> vec2 {
+                    let ca = cos(-a);
+                    let sa = sin(-a);
+                    let p = v - vec2(0.5, 0.5);
+                    return vec2(p.x * ca - p.y * sa, p.x * sa + p.y * ca) + vec2(0.5, 0.5);
+                }
+
+                fn get_color(self) -> vec4 {
+                    let rot = rotate_2d_from_center(self.pos.xy, self.angle);
+                    return sample2d(self.image, rot).xyzw;
+                }
+
                 fn pixel(self) -> vec4 {
                     let sdf = Sdf2d::viewport(self.pos * self.rect_size);
 
-                    // TODO: can't access DrawImage.self here (for self.angle)
-                    // perhaps we need to figure out a way to run the frame code directly in DrawImage without calling Image
-                    // Image is an extension of Frame so we could try using that code.
-
-                    let angle = 90;
                     let c = self.rect_size * 0.5;
-
-                    sdf.rotate(angle, c.x, c.y);
-
+                    sdf.rotate(self.angle, c.x, c.y);
                     sdf.box(1., 1., self.rect_size.x, self.rect_size.y, 1);
 
-                    sdf.fill_keep(self.get_color());
-
-                    return sdf.result;
+                    sdf.fill(self.get_color());
+                    return sdf.result
                 }
             }
         }
@@ -55,6 +54,7 @@ live_design! {
 
     ImageBox= {{ImageBox}} {
         layout: {padding:2}
+        image = <RotatingImage> {}
     }
 
     ImageGrid= {{ImageGrid}} {
@@ -71,17 +71,16 @@ live_design! {
 pub struct DrawBg {
     #[deref]
     draw_super: DrawQuad,
-    #[live]
-    fast_path: f32,
 }
 
 #[derive(Live, LiveHook)]
-#[repr(C)]
-pub struct DrawImage {
-    #[deref]
-    frame: Frame,
+pub struct RotatingImage {
+    #[live]
+    image: Frame,
     #[live]
     angle: f32,
+    #[live]
+    state: LiveState,
 }
 
 #[derive(Live, LiveHook)]
@@ -89,7 +88,7 @@ pub struct ImageBox {
     #[live]
     draw_bg: DrawBg,
     #[live]
-    draw_image: DrawImage,
+    rotating_image: RotatingImage,
 
     #[live]
     layout: Layout,
@@ -164,12 +163,12 @@ impl ImageBox {
     }
 
     pub fn draw_abs(&mut self, cx: &mut Cx2d, pos: DVec2, angle: f32) {
-        self.draw_image.angle = angle;
-
+        self.rotating_image.angle = angle;
         self.draw_bg
             .begin(cx, Walk::fit().with_abs_pos(pos), self.layout);
 
-        _ = self.draw_image.draw_walk_widget(cx, Walk::fit());
+        // TODO, this doesn't work, how do I tell RotatingImage to draw its elements?
+        _ = self.rotating_image.image.draw_walk(cx, Walk::fit());
 
         self.draw_bg.end(cx);
     }
