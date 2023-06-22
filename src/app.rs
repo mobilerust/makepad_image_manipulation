@@ -54,7 +54,9 @@ impl AppMain for App {
         if let Event::Draw(event) = event {
             let cx = &mut Cx2d::new(cx, event);
 
-            _ = self.ui.draw_widget_all(cx);
+            self.ui.draw_widget_all(cx);
         }
+
+        self.ui.handle_widget_event(cx, event);
     }
 }

@@ -1,30 +1,21 @@
 use crate::makepad_widgets::*;
+use makepad_widgets::frame::Frame as Image;
 
 live_design! {
     import makepad_draw::shader::std::*;
-    import makepad_widgets::frame::*;
-    import makepad_widgets::label::Label;
+    import makepad_widgets::frame::Image;
 
-    // Heads-up this is just using the first image for now
-    // need to make the images same size in order to usem (and figure out how to identify them)
     IMG_1 = dep("crate://self/resources/image_1.jpg")
-    IMG_2 = dep("crate://self/resources/image_2.jpg")
-    IMG_3 = dep("crate://self/resources/image_3.jpg")
 
-    DrawBg = {{DrawBg}} {
-        fn pixel(self) -> vec4 {
-            return #FDFDFD;
-        }
-    }
+    ImageBox= {{ImageBox}} {
+        layout: {padding:2}
 
-    RotatingImage = {{RotatingImage}} {
         image: <Image> {
-            walk: {width: 30, height: 30},
+            walk: {width: 80, height: 80},
             image: (IMG_1)
-
-            instance angle: 20.0
+            show_bg: true
             draw_bg: {
-                instance angle: 20.0
+                instance angle: 0.0
 
                 fn rotate_2d_from_center(v: vec2, a: float) -> vec2 {
                     let ca = cos(-a);
@@ -50,11 +41,24 @@ live_design! {
                 }
             }
         }
-    }
 
-    ImageBox= {{ImageBox}} {
-        layout: {padding:2}
-        image = <RotatingImage> {}
+        state: {
+            rotation = {
+                default: off
+                off = {
+                    from: {all: Snap}
+                    apply: {
+                        image: { draw_bg: {angle: 0.0} }
+                    }
+                }
+                on = {
+                    from: {all: Loop {duration: 10, end: 1.0}}
+                    apply: {
+                        image: { draw_bg: {angle: 6.28318}}
+                    }
+                }
+            }
+        }
     }
 
     ImageGrid= {{ImageGrid}} {
@@ -66,40 +70,16 @@ live_design! {
     }
 }
 
-#[derive(Live, LiveHook)]
-#[repr(C)]
-pub struct DrawBg {
-    #[deref]
-    draw_super: DrawQuad,
-}
-
-#[derive(Live, LiveHook)]
-pub struct RotatingImage {
+#[derive(Live)]
+pub struct ImageGrid {
     #[live]
-    image: Frame,
-    #[live]
-    angle: f32,
-    #[live]
-    state: LiveState,
-}
-
-#[derive(Live, LiveHook)]
-pub struct ImageBox {
-    #[live]
-    draw_bg: DrawBg,
-    #[live]
-    rotating_image: RotatingImage,
-
+    walk: Walk,
     #[live]
     layout: Layout,
-    #[state]
-    state: LiveState,
-
     #[live]
-    angle: f32,
-
-    #[live]
-    label_align: Align,
+    image_box: Option<LivePtr>,
+    #[rust]
+    image_boxes: ComponentMap<ImageBoxId, ImageBox>,
 }
 
 impl Widget for ImageGrid {
@@ -122,21 +102,9 @@ impl Widget for ImageGrid {
     fn redraw(&mut self, _cx: &mut Cx) {}
 
     fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
-        let _ = self.draw_walk(cx, walk);
+        self.draw_walk(cx, walk);
         WidgetDraw::done()
     }
-}
-
-#[derive(Live)]
-pub struct ImageGrid {
-    #[live]
-    walk: Walk,
-    #[live]
-    layout: Layout,
-    #[live]
-    image_box: Option<LivePtr>,
-    #[rust]
-    image_boxes: ComponentMap<ImageBoxId, ImageBox>,
 }
 
 impl LiveHook for ImageGrid {
@@ -153,24 +121,81 @@ impl LiveHook for ImageGrid {
     }
 }
 
+impl ImageGrid {
+    pub fn draw_walk(&mut self, cx: &mut Cx2d, _walk: Walk) {
+        let start_pos = cx.turtle().pos();
+        let image_box = self.image_box;
+
+        for y in 0..8 {
+            for x in 0..3 {
+                let box_id = LiveId(x * 100 + y).into();
+                let image_box = self
+                    .image_boxes
+                    .get_or_insert(cx, box_id, |cx| ImageBox::new_from_ptr(cx, image_box));
+                let pos = start_pos + dvec2(x as f64 * 130.0, y as f64 * 130.0);
+                image_box.draw_abs(cx, pos);
+            }
+        }
+        self.image_boxes.retain_visible();
+    }
+
+    pub fn handle_event_with(
+        &mut self,
+        cx: &mut Cx,
+        event: &Event,
+        _dispatch_action: &mut dyn FnMut(&mut Cx, ImageGridAction),
+    ) {
+        let mut actions = Vec::new();
+        for (box_id, image_box) in self.image_boxes.iter_mut() {
+            image_box
+                .handle_event_with(cx, event, &mut |_, action| actions.push((*box_id, action)));
+        }
+    }
+}
+
+#[derive(Live)]
+pub struct ImageBox {
+    #[live]
+    draw_bg: DrawQuad,
+    #[live]
+    image: Image,
+
+    #[live]
+    layout: Layout,
+    #[state]
+    state: LiveState,
+
+    #[live]
+    angle: f32,
+}
+
+impl LiveHook for ImageBox {
+    fn after_new_from_doc(&mut self, cx: &mut Cx) {
+        self.animate_state(cx, id!(rotation.on));
+    }
+}
+
 impl ImageBox {
     pub fn handle_event_with(
         &mut self,
-        _cx: &mut Cx,
-        _event: &Event,
+        cx: &mut Cx,
+        event: &Event,
         _dispatch_action: &mut dyn FnMut(&mut Cx, ImageBoxAction),
     ) {
+        self.state_handle_event(cx, event);
+
+        if let Hit::FingerHoverIn(_) = event.hits(cx, self.image.area()) {
+            cx.set_cursor(MouseCursor::Arrow);
+            self.animate_state(cx, id!(rotation.on));
+        }
     }
 
-    pub fn draw_abs(&mut self, cx: &mut Cx2d, pos: DVec2, angle: f32) {
-        self.rotating_image.angle = angle;
-        self.draw_bg
-            .begin(cx, Walk::fit().with_abs_pos(pos), self.layout);
+    pub fn draw_abs(&mut self, cx: &mut Cx2d, pos: DVec2) {
+        let bg_size = Size::Fixed(120.0);
 
-        // TODO, this doesn't work, how do I tell RotatingImage to draw its elements?
-        _ = self.rotating_image.image.draw_walk(cx, Walk::fit());
-
-        self.draw_bg.end(cx);
+        _ = self
+            .image
+            .draw_walk_widget(cx, Walk::size(bg_size, bg_size).with_abs_pos(pos));
     }
 }
 
@@ -183,42 +208,3 @@ pub enum ImageBoxAction {}
 
 #[derive(Clone, Debug, Default, Eq, Hash, Copy, PartialEq, FromLiveId)]
 pub struct ImageBoxId(pub LiveId);
-
-impl ImageGrid {
-    pub fn draw_walk(&mut self, cx: &mut Cx2d, _walk: Walk) {
-        let start_pos = cx.turtle().pos();
-        let image_box = self.image_box;
-
-        // TODO: just grabbed this from the numbers example
-        // might not be relevant for benchmarking but we could do a proper grid system
-        for y in 0..2 {
-            for x in 0..16 {
-                let box_id = LiveId(x * 100 + y).into();
-                let image_box = self
-                    .image_boxes
-                    .get_or_insert(cx, box_id, |cx| ImageBox::new_from_ptr(cx, image_box));
-                let pos = start_pos + dvec2(x as f64 * 40.0, y as f64 * 25.0);
-                let angle = 100.0;
-                image_box.draw_abs(cx, pos, angle);
-            }
-        }
-        self.image_boxes.retain_visible();
-    }
-
-    pub fn handle_event_with(
-        &mut self,
-        _cx: &mut Cx,
-        _event: &Event,
-        _dispatch_action: &mut dyn FnMut(&mut Cx, ImageGridAction),
-    ) {
-        // let mut actions = Vec::new();
-        // for (box_id, image_box) in self.image_boxes.iter_mut() {
-        //     image_box
-        //         .handle_event_with(cx, event, &mut |_, action| actions.push((*box_id, action)));
-        // }
-
-        // for (_node_id, action) in actions {
-        //     match action {}
-        // }
-    }
-}
