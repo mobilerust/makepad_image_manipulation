@@ -16,6 +16,7 @@ live_design! {
             show_bg: true
             draw_bg: {
                 instance angle: 0.0
+                instance fade_value: 1.0
 
                 fn rotate_2d_from_center(v: vec2, a: float) -> vec2 {
                     let ca = cos(-a);
@@ -26,7 +27,8 @@ live_design! {
 
                 fn get_color(self) -> vec4 {
                     let rot = rotate_2d_from_center(self.pos.xy, self.angle);
-                    return sample2d(self.image, rot).xyzw;
+                    let color = sample2d(self.image, rot).xyzw;
+                    return color * vec4(1.0, 1.0, 1.0, self.fade_value);
                 }
 
                 fn pixel(self) -> vec4 {
@@ -48,13 +50,13 @@ live_design! {
                 off = {
                     from: {all: Snap}
                     apply: {
-                        image: { draw_bg: {} }
+                        image: { draw_bg: {fade_value: 1.0} }
                     }
                 }
                 on = {
-                    from: {all: Loop {duration: 10, end: 1.0}}
+                    from: {all: Loop {duration: 5, end: 1.0}}
                     apply: {
-                        image: { draw_bg: {} }
+                        image: { draw_bg: {fade_value: 0.0} }
                     }
                 }
             }
@@ -68,7 +70,7 @@ live_design! {
                     }
                 }
                 on = {
-                    from: {all: Loop {duration: 10, end: 1.0}}
+                    from: {all: Loop {duration: 5, end: 1.0}}
                     apply: {
                         image: { draw_bg: {} }
                     }
@@ -84,7 +86,7 @@ live_design! {
                     }
                 }
                 on = {
-                    from: {all: Loop {duration: 10, end: 1.0}}
+                    from: {all: Loop {duration: 5, end: 1.0}}
                     apply: {
                         image: { draw_bg: {angle: 6.28318}}
                     }
