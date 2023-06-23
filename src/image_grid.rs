@@ -144,6 +144,23 @@ impl LiveHook for ImageGrid {
         register_widget!(cx, ImageGrid)
     }
 
+    fn after_new_from_doc(&mut self, cx: &mut Cx) {
+        let image_box = self.image_box;
+
+        for y in 0..8 {
+            for x in 0..3 {
+                let box_id = LiveId(x * 100 + y).into();
+
+                let mut new_box = ImageBox::new_from_ptr(cx, image_box);
+
+                let pattern_index = (y * 3 + x) % 3;
+                new_box.animation = Animation::from_index(pattern_index);
+
+                self.image_boxes.insert(box_id, new_box);
+            }
+        }
+    }
+
     fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, index: usize, nodes: &[LiveNode]) {
         for image_box in self.image_boxes.values_mut() {
             if let Some(index) = nodes.child_by_name(index, live_id!(image_box).as_field()) {
@@ -156,25 +173,15 @@ impl LiveHook for ImageGrid {
 impl ImageGrid {
     pub fn draw_walk(&mut self, cx: &mut Cx2d, _walk: Walk) {
         let start_pos = cx.turtle().pos();
-        let image_box = self.image_box;
-
-        for y in 0..8 {
-            for x in 0..3 {
-                let box_id = LiveId(x * 100 + y).into();
-
-                let pattern_index = (y * 3 + x) % 3;
-
-                let image_box = self.image_boxes.get_or_insert(cx, box_id, |cx| {
-                    let mut new_box = ImageBox::new_from_ptr(cx, image_box);
-                    new_box.animation = Animation::from_index(pattern_index);
-                    new_box
-                });
-
-                let pos = start_pos + dvec2(x as f64 * 130.0, y as f64 * 130.0);
-                image_box.draw_abs(cx, pos);
-            }
+        for (box_id, image_box) in self.image_boxes.iter_mut() {
+            let box_idu64 = box_id.0.get_value();
+            let pos = start_pos
+                + dvec2(
+                    (box_idu64 / 100) as f64 * 130.0,
+                    (box_idu64 % 100) as f64 * 130.0,
+                );
+            image_box.draw_abs(cx, pos);
         }
-        self.image_boxes.retain_visible();
     }
 
     pub fn handle_event_with(
@@ -240,7 +247,6 @@ impl ImageBox {
         }
 
         let bg_size = Size::Fixed(120.0);
-
         _ = self
             .image
             .draw_walk_widget(cx, Walk::size(bg_size, bg_size).with_abs_pos(pos));
