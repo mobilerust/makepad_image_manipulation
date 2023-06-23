@@ -231,10 +231,12 @@ impl ImageBox {
     }
 
     pub fn draw_abs(&mut self, cx: &mut Cx2d, pos: DVec2) {
-        match self.animation {
-            Animation::Fade => self.animate_state(cx, id!(fade.on)),
-            Animation::Scale => self.animate_state(cx, id!(scale.on)),
-            Animation::Rotate => self.animate_state(cx, id!(rotate.on)),
+        if self.state.need_init() {
+            match self.animation {
+                Animation::Fade => self.animate_state(cx, id!(fade.on)),
+                Animation::Scale => self.animate_state(cx, id!(scale.on)),
+                Animation::Rotate => self.animate_state(cx, id!(rotate.on)),
+            }
         }
 
         let bg_size = Size::Fixed(120.0);
