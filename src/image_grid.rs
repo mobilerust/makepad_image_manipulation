@@ -43,7 +43,39 @@ live_design! {
         }
 
         state: {
-            rotation = {
+            fade = { // todo
+                default: off
+                off = {
+                    from: {all: Snap}
+                    apply: {
+                        image: { draw_bg: {} }
+                    }
+                }
+                on = {
+                    from: {all: Loop {duration: 10, end: 1.0}}
+                    apply: {
+                        image: { draw_bg: {} }
+                    }
+                }
+            }
+
+            scale = { // todo
+                default: off
+                off = {
+                    from: {all: Snap}
+                    apply: {
+                        image: { draw_bg: {} }
+                    }
+                }
+                on = {
+                    from: {all: Loop {duration: 10, end: 1.0}}
+                    apply: {
+                        image: { draw_bg: {} }
+                    }
+                }
+            }
+
+            rotate = {
                 default: off
                 off = {
                     from: {all: Snap}
@@ -112,6 +144,23 @@ impl LiveHook for ImageGrid {
         register_widget!(cx, ImageGrid)
     }
 
+    fn after_new_from_doc(&mut self, cx: &mut Cx) {
+        let image_box = self.image_box;
+
+        for y in 0..8 {
+            for x in 0..3 {
+                let box_id = LiveId(x * 100 + y).into();
+
+                let mut new_box = ImageBox::new_from_ptr(cx, image_box);
+
+                let pattern_index = (y * 3 + x) % 3;
+                new_box.animation = Animation::from_index(pattern_index);
+
+                self.image_boxes.insert(box_id, new_box);
+            }
+        }
+    }
+
     fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, index: usize, nodes: &[LiveNode]) {
         for image_box in self.image_boxes.values_mut() {
             if let Some(index) = nodes.child_by_name(index, live_id!(image_box).as_field()) {
@@ -124,19 +173,15 @@ impl LiveHook for ImageGrid {
 impl ImageGrid {
     pub fn draw_walk(&mut self, cx: &mut Cx2d, _walk: Walk) {
         let start_pos = cx.turtle().pos();
-        let image_box = self.image_box;
-
-        for y in 0..8 {
-            for x in 0..3 {
-                let box_id = LiveId(x * 100 + y).into();
-                let image_box = self
-                    .image_boxes
-                    .get_or_insert(cx, box_id, |cx| ImageBox::new_from_ptr(cx, image_box));
-                let pos = start_pos + dvec2(x as f64 * 130.0, y as f64 * 130.0);
-                image_box.draw_abs(cx, pos);
-            }
+        for (box_id, image_box) in self.image_boxes.iter_mut() {
+            let box_idu64 = box_id.0.get_value();
+            let pos = start_pos
+                + dvec2(
+                    (box_idu64 / 100) as f64 * 130.0,
+                    (box_idu64 % 100) as f64 * 130.0,
+                );
+            image_box.draw_abs(cx, pos);
         }
-        self.image_boxes.retain_visible();
     }
 
     pub fn handle_event_with(
@@ -159,19 +204,26 @@ pub struct ImageBox {
     draw_bg: DrawQuad,
     #[live]
     image: Image,
-
     #[live]
     layout: Layout,
     #[state]
     state: LiveState,
 
-    #[live]
-    angle: f32,
+    #[rust]
+    animation: Animation,
 }
 
+#[derive(Clone, Debug, Default, Eq, Hash, Copy, PartialEq, FromLiveId)]
+pub struct ImageBoxId(pub LiveId);
+
 impl LiveHook for ImageBox {
-    fn after_new_from_doc(&mut self, cx: &mut Cx) {
-        self.animate_state(cx, id!(rotation.on));
+    fn before_apply(
+        &mut self,
+        _cx: &mut Cx,
+        _apply_from: ApplyFrom,
+        _index: usize,
+        _nodes: &[LiveNode],
+    ) {
     }
 }
 
@@ -183,16 +235,18 @@ impl ImageBox {
         _dispatch_action: &mut dyn FnMut(&mut Cx, ImageBoxAction),
     ) {
         self.state_handle_event(cx, event);
-
-        if let Hit::FingerHoverIn(_) = event.hits(cx, self.image.area()) {
-            cx.set_cursor(MouseCursor::Arrow);
-            self.animate_state(cx, id!(rotation.on));
-        }
     }
 
     pub fn draw_abs(&mut self, cx: &mut Cx2d, pos: DVec2) {
-        let bg_size = Size::Fixed(120.0);
+        if self.state.need_init() {
+            match self.animation {
+                Animation::Fade => self.animate_state(cx, id!(fade.on)),
+                Animation::Scale => self.animate_state(cx, id!(scale.on)),
+                Animation::Rotate => self.animate_state(cx, id!(rotate.on)),
+            }
+        }
 
+        let bg_size = Size::Fixed(120.0);
         _ = self
             .image
             .draw_walk_widget(cx, Walk::size(bg_size, bg_size).with_abs_pos(pos));
@@ -206,5 +260,21 @@ pub enum ImageGridAction {
 
 pub enum ImageBoxAction {}
 
-#[derive(Clone, Debug, Default, Eq, Hash, Copy, PartialEq, FromLiveId)]
-pub struct ImageBoxId(pub LiveId);
+#[derive(Default)]
+pub enum Animation {
+    #[default]
+    Rotate,
+    Scale,
+    Fade,
+}
+
+impl Animation {
+    pub fn from_index(index: u64) -> Self {
+        match index {
+            0 => Animation::Fade,
+            1 => Animation::Scale,
+            2 => Animation::Rotate,
+            _ => Animation::Rotate,
+        }
+    }
+}
