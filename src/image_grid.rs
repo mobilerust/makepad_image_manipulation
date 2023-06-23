@@ -43,7 +43,39 @@ live_design! {
         }
 
         state: {
-            rotation = {
+            fade = { // todo
+                default: off
+                off = {
+                    from: {all: Snap}
+                    apply: {
+                        image: { draw_bg: {} }
+                    }
+                }
+                on = {
+                    from: {all: Loop {duration: 10, end: 1.0}}
+                    apply: {
+                        image: { draw_bg: {} }
+                    }
+                }
+            }
+
+            scale = { // todo
+                default: off
+                off = {
+                    from: {all: Snap}
+                    apply: {
+                        image: { draw_bg: {} }
+                    }
+                }
+                on = {
+                    from: {all: Loop {duration: 10, end: 1.0}}
+                    apply: {
+                        image: { draw_bg: {} }
+                    }
+                }
+            }
+
+            rotate = {
                 default: off
                 off = {
                     from: {all: Snap}
@@ -129,9 +161,15 @@ impl ImageGrid {
         for y in 0..8 {
             for x in 0..3 {
                 let box_id = LiveId(x * 100 + y).into();
-                let image_box = self
-                    .image_boxes
-                    .get_or_insert(cx, box_id, |cx| ImageBox::new_from_ptr(cx, image_box));
+
+                let pattern_index = (y * 3 + x) % 3;
+
+                let image_box = self.image_boxes.get_or_insert(cx, box_id, |cx| {
+                    let mut new_box = ImageBox::new_from_ptr(cx, image_box);
+                    new_box.animation = Animation::from_index(pattern_index);
+                    new_box
+                });
+
                 let pos = start_pos + dvec2(x as f64 * 130.0, y as f64 * 130.0);
                 image_box.draw_abs(cx, pos);
             }
@@ -159,19 +197,26 @@ pub struct ImageBox {
     draw_bg: DrawQuad,
     #[live]
     image: Image,
-
     #[live]
     layout: Layout,
     #[state]
     state: LiveState,
 
-    #[live]
-    angle: f32,
+    #[rust]
+    animation: Animation,
 }
 
+#[derive(Clone, Debug, Default, Eq, Hash, Copy, PartialEq, FromLiveId)]
+pub struct ImageBoxId(pub LiveId);
+
 impl LiveHook for ImageBox {
-    fn after_new_from_doc(&mut self, cx: &mut Cx) {
-        self.animate_state(cx, id!(rotation.on));
+    fn before_apply(
+        &mut self,
+        _cx: &mut Cx,
+        _apply_from: ApplyFrom,
+        _index: usize,
+        _nodes: &[LiveNode],
+    ) {
     }
 }
 
@@ -183,14 +228,15 @@ impl ImageBox {
         _dispatch_action: &mut dyn FnMut(&mut Cx, ImageBoxAction),
     ) {
         self.state_handle_event(cx, event);
-
-        if let Hit::FingerHoverIn(_) = event.hits(cx, self.image.area()) {
-            cx.set_cursor(MouseCursor::Arrow);
-            self.animate_state(cx, id!(rotation.on));
-        }
     }
 
     pub fn draw_abs(&mut self, cx: &mut Cx2d, pos: DVec2) {
+        match self.animation {
+            Animation::Fade => self.animate_state(cx, id!(fade.on)),
+            Animation::Scale => self.animate_state(cx, id!(scale.on)),
+            Animation::Rotate => self.animate_state(cx, id!(rotate.on)),
+        }
+
         let bg_size = Size::Fixed(120.0);
 
         _ = self
@@ -206,5 +252,21 @@ pub enum ImageGridAction {
 
 pub enum ImageBoxAction {}
 
-#[derive(Clone, Debug, Default, Eq, Hash, Copy, PartialEq, FromLiveId)]
-pub struct ImageBoxId(pub LiveId);
+#[derive(Default)]
+pub enum Animation {
+    #[default]
+    Rotate,
+    Scale,
+    Fade,
+}
+
+impl Animation {
+    pub fn from_index(index: u64) -> Self {
+        match index {
+            0 => Animation::Fade,
+            1 => Animation::Scale,
+            2 => Animation::Rotate,
+            _ => Animation::Rotate,
+        }
+    }
+}
