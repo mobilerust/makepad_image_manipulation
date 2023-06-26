@@ -45,7 +45,7 @@ live_design! {
         }
 
         state: {
-            fade = { // todo
+            fade = {
                 default: off
                 off = {
                     from: {all: Snap}
