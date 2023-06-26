@@ -8,10 +8,8 @@ live_design! {
     IMG_1 = dep("crate://self/resources/image_1.jpg")
 
     ImageBox= {{ImageBox}} {
-        layout: {padding:2}
-
         image: <Image> {
-            walk: {width: 80, height: 80},
+            walk: {width: 20, height: 20},
             image: (IMG_1)
             show_bg: true
             draw_bg: {
@@ -188,14 +186,14 @@ impl LiveHook for ImageGrid {
     fn after_new_from_doc(&mut self, cx: &mut Cx) {
         let image_box = self.image_box;
 
-        for y in 0..8 {
-            for x in 0..3 {
+        for y in 0..31 {
+            for x in 0..14 {
                 let box_id = LiveId(x * 100 + y).into();
 
                 let mut new_box = ImageBox::new_from_ptr(cx, image_box);
 
-                let pattern_index = (y * 3 + x) % 3;
-                new_box.animation = Animation::from_index(pattern_index);
+                let pattern_index = ((x as i64 - y as i64).rem_euclid(3) + 3) % 3;
+                new_box.animation = Animation::from_index(pattern_index as usize);
 
                 self.image_boxes.insert(box_id, new_box);
             }
@@ -218,8 +216,8 @@ impl ImageGrid {
             let box_idu64 = box_id.0.get_value();
             let pos = start_pos
                 + dvec2(
-                    (box_idu64 / 100) as f64 * 130.0,
-                    (box_idu64 % 100) as f64 * 130.0,
+                    (box_idu64 / 100) as f64 * 27.0,
+                    (box_idu64 % 100) as f64 * 27.0,
                 );
             image_box.draw_abs(cx, pos);
         }
@@ -287,7 +285,7 @@ impl ImageBox {
             }
         }
 
-        let bg_size = Size::Fixed(120.0);
+        let bg_size = Size::Fixed(25.0);
         _ = self
             .image
             .draw_walk_widget(cx, Walk::size(bg_size, bg_size).with_abs_pos(pos));
@@ -310,7 +308,7 @@ pub enum Animation {
 }
 
 impl Animation {
-    pub fn from_index(index: u64) -> Self {
+    pub fn from_index(index: usize) -> Self {
         match index {
             0 => Animation::Fade,
             1 => Animation::Scale,
