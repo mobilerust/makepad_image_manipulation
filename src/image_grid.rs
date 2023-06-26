@@ -18,6 +18,11 @@ live_design! {
                 instance angle: 0.0
                 instance fade_value: 1.0
 
+                fn rotatation_padding(w: float, h: float) -> float {
+                    let d = max(w, h);
+                    return ((sqrt(d * d * 2.0) / d) - 1.0) / 2.0;
+                }
+
                 fn rotate_2d_from_center(v: vec2, a: float) -> vec2 {
                     let ca = cos(-a);
                     let sa = sin(-a);
@@ -25,21 +30,46 @@ live_design! {
                     return vec2(p.x * ca - p.y * sa, p.x * sa + p.y * ca) + vec2(0.5, 0.5);
                 }
 
-                fn get_color(self) -> vec4 {
-                    let rot = rotate_2d_from_center(self.pos.xy, self.angle);
+                fn get_color(self, rot_padding: float) -> vec4 {
+                    // Current position is a traslated one, so let's get the original position
+                    let pos = self.pos.xy - vec2(rot_padding, rot_padding);
+                    let rot = rotate_2d_from_center(pos, self.angle);
+                    // Take pixel color from the original image
                     let color = sample2d(self.image, rot).xyzw;
+
                     return color * vec4(1.0, 1.0, 1.0, self.fade_value);
                 }
 
                 fn pixel(self) -> vec4 {
+                    let rot_padding = rotatation_padding(self.rect_size.x, self.rect_size.y);
+
                     let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+
+                    let t = self.rect_size * rot_padding;
+                    sdf.translate(t.x, t.y);
 
                     let c = self.rect_size * 0.5;
                     sdf.rotate(self.angle, c.x, c.y);
                     sdf.box(1., 1., self.rect_size.x, self.rect_size.y, 1);
 
-                    sdf.fill(self.get_color());
+                    sdf.fill(self.get_color(rot_padding));
                     return sdf.result
+                }
+
+                fn vertex(self) -> vec4 {
+                    let rot_padding = rotatation_padding(self.rect_size.x, self.rect_size.y);
+
+                    // I don't know if different draw_clip values are properly supported
+                    let clipped: vec2 = clamp(
+                        self.geom_pos * self.rect_size * (1.0 + rot_padding * 2) + self.rect_pos,
+                        self.draw_clip.xy,
+                        self.draw_clip.zw * (1.0 + rot_padding * 2)
+                    );
+
+                    self.pos = (clipped - self.rect_pos) / self.rect_size;
+                    return self.camera_projection * (self.camera_view * (
+                        self.view_transform * vec4(clipped.x, clipped.y, self.draw_depth + self.draw_zbias, 1.)
+                    ));
                 }
             }
         }
