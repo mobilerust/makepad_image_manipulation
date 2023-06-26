@@ -16,9 +16,10 @@ live_design! {
             show_bg: true
             draw_bg: {
                 instance angle: 0.0
-                instance fade_value: 1.0
+                instance fade_factor: 1.0
+                instance scale_factor: 1.0
 
-                fn rotatation_padding(w: float, h: float) -> float {
+                fn rotation_padding(w: float, h: float) -> float {
                     let d = max(w, h);
                     return ((sqrt(d * d * 2.0) / d) - 1.0) / 2.0;
                 }
@@ -32,32 +33,40 @@ live_design! {
 
                 fn get_color(self, rot_padding: float) -> vec4 {
                     // Current position is a traslated one, so let's get the original position
-                    let pos = self.pos.xy - vec2(rot_padding, rot_padding);
-                    let rot = rotate_2d_from_center(pos, self.angle);
-                    // Take pixel color from the original image
-                    let color = sample2d(self.image, rot).xyzw;
+                    let current_pos = self.pos.xy - vec2(rot_padding, rot_padding);
+                    let original_pos = rotate_2d_from_center(current_pos, self.angle);
 
-                    return color * vec4(1.0, 1.0, 1.0, self.fade_value);
+                    // Scale the current position by the scale factor
+                    let scaled_pos = (original_pos - vec2(0.5, 0.5)) / self.scale_factor + vec2(0.5, 0.5);
+
+                    // Take pixel color from the original image
+                    let color = sample2d(self.image, scaled_pos).xyzw;
+
+                    let faded_color = color * vec4(1.0, 1.0, 1.0, self.fade_factor);
+                    return faded_color;
                 }
 
                 fn pixel(self) -> vec4 {
-                    let rot_padding = rotatation_padding(self.rect_size.x, self.rect_size.y);
+                    let rot_padding = rotation_padding(self.rect_size.x, self.rect_size.y);
 
                     let sdf = Sdf2d::viewport(self.pos * self.rect_size);
 
-                    let t = self.rect_size * rot_padding;
-                    sdf.translate(t.x, t.y);
+                    let translation_offset = self.rect_size * rot_padding;
+                    sdf.translate(translation_offset.x, translation_offset.y);
 
-                    let c = self.rect_size * 0.5;
-                    sdf.rotate(self.angle, c.x, c.y);
-                    sdf.box(1., 1., self.rect_size.x, self.rect_size.y, 1);
+                    let center = self.rect_size * 0.5;
+                    sdf.rotate(self.angle, center.x, center.y);
+
+                    let scaled_size = self.rect_size * self.scale_factor;
+                    let offset = (self.rect_size - scaled_size) * 0.5;
+                    sdf.box(offset.x, offset.y, scaled_size.x, scaled_size.y, 1);
 
                     sdf.fill(self.get_color(rot_padding));
                     return sdf.result
                 }
 
                 fn vertex(self) -> vec4 {
-                    let rot_padding = rotatation_padding(self.rect_size.x, self.rect_size.y);
+                    let rot_padding = rotation_padding(self.rect_size.x, self.rect_size.y);
 
                     // I don't know if different draw_clip values are properly supported
                     let clipped: vec2 = clamp(
@@ -80,29 +89,29 @@ live_design! {
                 off = {
                     from: {all: Snap}
                     apply: {
-                        image: { draw_bg: {fade_value: 1.0} }
+                        image: { draw_bg: {fade_factor: 1.0} }
                     }
                 }
                 on = {
                     from: {all: Loop {duration: 5, end: 1.0}}
                     apply: {
-                        image: { draw_bg: {fade_value: 0.0} }
+                        image: { draw_bg: {fade_factor: 0.0} }
                     }
                 }
             }
 
-            scale = { // todo
+            scale = {
                 default: off
                 off = {
                     from: {all: Snap}
                     apply: {
-                        image: { draw_bg: {} }
+                        image: { draw_bg: {scale_factor: 1.0} }
                     }
                 }
                 on = {
                     from: {all: Loop {duration: 5, end: 1.0}}
                     apply: {
-                        image: { draw_bg: {} }
+                        image: { draw_bg: {scale_factor: 0.0} }
                     }
                 }
             }
