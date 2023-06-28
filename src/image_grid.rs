@@ -2,10 +2,28 @@ use crate::image_box::{Animation, ImageBox, ImageBoxId, IMAGE_WIDTH};
 use crate::makepad_widgets::*;
 
 live_design! {
-    import crate::image_box::ImageBox;
+    import crate::image_box::*;
+
+    IMG_1 = dep("crate://self/resources/image_1.jpg")
+    IMG_2 = dep("crate://self/resources/image_2.jpg")
+    IMG_3 = dep("crate://self/resources/image_3.jpg")
 
     ImageGrid= {{ImageGrid}} {
-        image_box: <ImageBox> {}
+        fading_image_box: <ImageBox> {
+            image: <CustomImage> {
+                image: (IMG_1)
+            }
+        }
+        scaling_image_box: <ImageBox> {
+            image: <CustomImage> {
+                image: (IMG_2)
+            }
+        }
+        rotating_image_box: <ImageBox> {
+            image: <CustomImage> {
+                image: (IMG_3)
+            }
+        }
         walk: {
             width: Fill,
             height: Fill
@@ -20,7 +38,11 @@ pub struct ImageGrid {
     #[live]
     layout: Layout,
     #[live]
-    image_box: Option<LivePtr>,
+    fading_image_box: Option<LivePtr>,
+    #[live]
+    scaling_image_box: Option<LivePtr>,
+    #[live]
+    rotating_image_box: Option<LivePtr>,
     #[rust]
     image_boxes: ComponentMap<ImageBoxId, ImageBox>,
 }
@@ -57,17 +79,27 @@ impl LiveHook for ImageGrid {
     }
 
     fn after_new_from_doc(&mut self, cx: &mut Cx) {
-        let image_box = self.image_box;
-
         for y in 0..32 {
             for x in 0..17 {
                 let box_id = LiveId(x * 100 + y).into();
 
-                let mut new_box = ImageBox::new_from_ptr(cx, image_box);
-
+                let mut new_box;
                 let pattern_index = ((x as i64 - y as i64).rem_euclid(3) + 3) % 3;
-                new_box.animation = Animation::from_index(pattern_index as usize);
+                let animation = Animation::from_index(pattern_index as usize);
 
+                match animation {
+                    Animation::Fade => {
+                        new_box = ImageBox::new_from_ptr(cx, self.fading_image_box);
+                    }
+                    Animation::Scale => {
+                        new_box = ImageBox::new_from_ptr(cx, self.scaling_image_box);
+                    }
+                    Animation::Rotate => {
+                        new_box = ImageBox::new_from_ptr(cx, self.rotating_image_box);
+                    }
+                }
+
+                new_box.animation = animation;
                 self.image_boxes.insert(box_id, new_box);
             }
         }
