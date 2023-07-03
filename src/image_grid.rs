@@ -79,30 +79,13 @@ impl LiveHook for ImageGrid {
     }
 
     fn after_new_from_doc(&mut self, cx: &mut Cx) {
-        for y in 0..32 {
-            for x in 0..17 {
-                let box_id = LiveId(x * 100 + y).into();
+        let fading_image = ImageBox::new_from_ptr(cx, self.fading_image_box);
+        let scaling_image = ImageBox::new_from_ptr(cx, self.scaling_image_box);
+        let rotating_image = ImageBox::new_from_ptr(cx, self.rotating_image_box);
 
-                let mut new_box;
-                let pattern_index = ((x as i64 - y as i64).rem_euclid(3) + 3) % 3;
-                let animation = Animation::from_index(pattern_index as usize);
-
-                match animation {
-                    Animation::Fade => {
-                        new_box = ImageBox::new_from_ptr(cx, self.fading_image_box);
-                    }
-                    Animation::Scale => {
-                        new_box = ImageBox::new_from_ptr(cx, self.scaling_image_box);
-                    }
-                    Animation::Rotate => {
-                        new_box = ImageBox::new_from_ptr(cx, self.rotating_image_box);
-                    }
-                }
-
-                new_box.animation = animation;
-                self.image_boxes.insert(box_id, new_box);
-            }
-        }
+        self.image_boxes.insert(LiveId::from_str("fading_image").unwrap().into(), fading_image);
+        self.image_boxes.insert(LiveId::from_str("scaling_image").unwrap().into(), scaling_image);
+        self.image_boxes.insert(LiveId::from_str("rotating_image").unwrap().into(), rotating_image);
     }
 
     fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, index: usize, nodes: &[LiveNode]) {
@@ -117,15 +100,34 @@ impl LiveHook for ImageGrid {
 impl ImageGrid {
     pub fn draw_walk(&mut self, cx: &mut Cx2d, _walk: Walk) {
         let start_pos = cx.turtle().pos();
-        for (box_id, image_box) in self.image_boxes.iter_mut() {
-            let box_idu64 = box_id.0.get_value();
-            let image_offset = ((IMAGE_WIDTH * IMAGE_WIDTH * 2.0).sqrt() - IMAGE_WIDTH) / 2.0;
-            let pos = start_pos
-                + dvec2(
-                    (box_idu64 / 100) as f64 * IMAGE_WIDTH - image_offset,
-                    (box_idu64 % 100) as f64 * IMAGE_WIDTH - image_offset,
-                );
-            image_box.draw_abs(cx, pos);
+        for y in 0..32 {
+            for x in 0..17 {
+                let box_id = y * 18 + x;
+                let image_offset = ((IMAGE_WIDTH * IMAGE_WIDTH * 2.0).sqrt() - IMAGE_WIDTH) / 2.0;
+                let pos = start_pos
+                    + dvec2(
+                        x as f64 * IMAGE_WIDTH - image_offset,
+                        y as f64 * IMAGE_WIDTH - image_offset,
+                    );
+                
+                match box_id % 3 {
+                    0 => {
+                        println!("drawing fading image {:?}", pos);
+                        self.image_boxes[LiveId::from_str("fading_image").unwrap().into()]
+                            .draw_abs(cx, pos);
+                    },
+                    1 => {
+                        println!("drawing scaling image {:?}", pos);
+                        self.image_boxes[LiveId::from_str("scaling_image").unwrap().into()]
+                            .draw_abs(cx, pos);
+                    },
+                    _ => {
+                        println!("drawing rotating image {:?}", pos);
+                        self.image_boxes[LiveId::from_str("rotating_image").unwrap().into()]
+                            .draw_abs(cx, pos);
+                    },
+                }
+            }
         }
     }
 
