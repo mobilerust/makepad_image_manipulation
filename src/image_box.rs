@@ -1,6 +1,6 @@
 use crate::makepad_widgets::*;
 use makepad_widgets::frame::Frame;
-pub const IMAGE_WIDTH: f64 = 27.0;
+pub const IMAGE_WIDTH: f64 = 20.0;
 
 live_design! {
     import makepad_draw::shader::std::*;
