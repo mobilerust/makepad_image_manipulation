@@ -1,27 +1,31 @@
 use crate::image_box::{Animation, ImageBox, ImageBoxId, IMAGE_WIDTH};
 use crate::makepad_widgets::*;
 
+const ROWS: i32 = 10;
+const COLS: i32 = 10;
+
 live_design! {
     import crate::image_box::*;
+    import makepad_widgets::image::Image;
 
-    IMG_1 = dep("crate://self/resources/image_1.jpg")
-    IMG_2 = dep("crate://self/resources/image_2.jpg")
-    IMG_3 = dep("crate://self/resources/image_3.jpg")
+    IMG_1 = dep("crate://self/resources/image_1.png")
+    IMG_2 = dep("crate://self/resources/image_2.png")
+    IMG_3 = dep("crate://self/resources/image_3.png")
 
     ImageGrid= {{ImageGrid}} {
         fading_image_box: <ImageBox> {
-            image: <CustomImage> {
-                image: (IMG_1)
+            image: <Image> {
+                source: (IMG_1)
             }
         }
         scaling_image_box: <ImageBox> {
-            image: <CustomImage> {
-                image: (IMG_2)
+            image: <Image> {
+                source: (IMG_2)
             }
         }
         rotating_image_box: <ImageBox> {
-            image: <CustomImage> {
-                image: (IMG_3)
+            image: <Image> {
+                source: (IMG_3)
             }
         }
         walk: {
@@ -79,9 +83,9 @@ impl LiveHook for ImageGrid {
     }
 
     fn after_new_from_doc(&mut self, cx: &mut Cx) {
-        for y in 0..32 {
-            for x in 0..17 {
-                let box_id = LiveId(x * 100 + y).into();
+        for y in 0..ROWS {
+            for x in 0..COLS {
+                let box_id = LiveId(x as u64 * 100 + y as u64).into();
 
                 let mut new_box;
                 let pattern_index = ((x as i64 - y as i64).rem_euclid(3) + 3) % 3;
