@@ -6,6 +6,7 @@ const COLS: i32 = 10;
 
 live_design! {
     import crate::image_box::*;
+    import makepad_image_manipulation::image::Image;
 
     IMG_1 = dep("crate://self/resources/image_1.png")
     IMG_2 = dep("crate://self/resources/image_2.png")
@@ -13,18 +14,18 @@ live_design! {
 
     ImageGrid= {{ImageGrid}} {
         fading_image_box: <ImageBox> {
-            image: <CustomImage> {
-                image: (IMG_1)
+            image: <Image> {
+                source: (IMG_1)
             }
         }
         scaling_image_box: <ImageBox> {
-            image: <CustomImage> {
-                image: (IMG_2)
+            image: <Image> {
+                source: (IMG_2)
             }
         }
         rotating_image_box: <ImageBox> {
-            image: <CustomImage> {
-                image: (IMG_3)
+            image: <Image> {
+                source: (IMG_3)
             }
         }
         walk: {
@@ -78,6 +79,7 @@ impl Widget for ImageGrid {
 impl LiveHook for ImageGrid {
     fn before_live_design(cx: &mut Cx) {
         register_widget!(cx, ImageGrid);
+        crate::image::live_design(cx);
         crate::image_box::live_design(cx);
     }
 
