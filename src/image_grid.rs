@@ -6,7 +6,7 @@ const COLS: i32 = 10;
 
 live_design! {
     import crate::image_box::*;
-    import makepad_image_manipulation::image::Image;
+    import makepad_widgets::image::Image;
 
     IMG_1 = dep("crate://self/resources/image_1.png")
     IMG_2 = dep("crate://self/resources/image_2.png")
@@ -79,7 +79,6 @@ impl Widget for ImageGrid {
 impl LiveHook for ImageGrid {
     fn before_live_design(cx: &mut Cx) {
         register_widget!(cx, ImageGrid);
-        crate::image::live_design(cx);
         crate::image_box::live_design(cx);
     }
 

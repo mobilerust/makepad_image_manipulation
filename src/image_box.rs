@@ -1,10 +1,9 @@
-use crate::image::Image;
 use crate::makepad_widgets::*;
 pub const IMAGE_WIDTH: f64 = 20.0;
 
 live_design! {
     import makepad_draw::shader::std::*;
-    import makepad_image_manipulation::image::Image;
+    import makepad_widgets::image::Image;
 
     ImageBox= {{ImageBox}} {
         image: <Image> {}
