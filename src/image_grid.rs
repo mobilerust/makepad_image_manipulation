@@ -8,9 +8,9 @@ live_design! {
     import crate::image_box::*;
     import makepad_widgets::image::Image;
 
-    IMG_1 = dep("crate://self/resources/image_1.png")
-    IMG_2 = dep("crate://self/resources/image_2.png")
-    IMG_3 = dep("crate://self/resources/image_3.png")
+    IMG_1 = dep("crate://self/resources/image_1_5x5.png")
+    IMG_2 = dep("crate://self/resources/image_2_5x5.png")
+    IMG_3 = dep("crate://self/resources/image_3_5x5.png")
 
     ImageGrid= {{ImageGrid}} {
         fading_image_box: <ImageBox> {
