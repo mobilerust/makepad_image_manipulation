@@ -3,12 +3,12 @@ pub const IMAGE_WIDTH: f64 = 20.0;
 
 live_design! {
     import makepad_draw::shader::std::*;
-    import makepad_widgets::image::Image;
+    import makepad_widgets::base::*;
 
     ImageBox= {{ImageBox}} {
-        image: <Image> {}
+        image: <RotatedImage> {}
 
-        state: {
+        animator: {
             fade = {
                 default: off
                 off = {
@@ -66,10 +66,10 @@ pub struct ImageBox {
     draw_bg: DrawQuad,
     #[live]
     image: Image,
-    #[live]
+    #[layout]
     layout: Layout,
-    #[state]
-    state: LiveState,
+    #[animator]
+    animator: Animator,
 
     #[rust]
     pub animation: Animation,
@@ -96,15 +96,15 @@ impl ImageBox {
         event: &Event,
         _dispatch_action: &mut dyn FnMut(&mut Cx, ImageBoxAction),
     ) {
-        self.state_handle_event(cx, event);
+        self.animator_handle_event(cx, event);
     }
 
     pub fn draw_abs(&mut self, cx: &mut Cx2d, pos: DVec2) {
-        if self.state.need_init() {
+        if self.animator.need_init() {
             match self.animation {
-                Animation::Fade => self.animate_state(cx, id!(fade.on)),
-                Animation::Scale => self.animate_state(cx, id!(scale.on)),
-                Animation::Rotate => self.animate_state(cx, id!(rotate.on)),
+                Animation::Fade => self.animator_play(cx, id!(fade.on)),
+                Animation::Scale => self.animator_play(cx, id!(scale.on)),
+                Animation::Rotate => self.animator_play(cx, id!(rotate.on)),
             }
         }
 
