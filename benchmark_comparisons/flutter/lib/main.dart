@@ -34,9 +34,9 @@ class _MyHomePageState extends State<MyHomePage>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   final List<String> imageList = const [
-    'assets/images/image_1.png',
-    'assets/images/image_2.png',
-    'assets/images/image_3.png',
+    'assets/images/image_1_200x200.jpg',
+    'assets/images/image_2_200x200.jpg',
+    'assets/images/image_3_200x200.jpg',
   ];
 
   final int numRows = 40;

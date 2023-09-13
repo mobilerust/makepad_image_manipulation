@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val imageList = remember {
-                mutableStateOf(listOf(R.drawable.image_1, R.drawable.image_2, R.drawable.image_3))
+                mutableStateOf(listOf(R.drawable.image_1_200x200, R.drawable.image_2_200x200, R.drawable.image_3_200x200))
             }
             MyApp {
                 ImageGrid(imageList.value)
@@ -143,7 +143,7 @@ fun ImageItem(index: Int, imageResIds: List<Int>) {
 @Composable
 fun DefaultPreview() {
     MyApp {
-        ImageGrid(listOf(R.drawable.image_1, R.drawable.image_2, R.drawable.image_3))
+        ImageGrid(listOf(R.drawable.image_1_200x200, R.drawable.image_2_200x200, R.drawable.image_3_200x200))
     }
 }
 
