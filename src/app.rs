@@ -10,7 +10,7 @@ live_design! {
     COLOR_BG = #FDFDFD
 
     App = {{App}} {
-        ui: <DesktopWindow>{
+        ui: <Window> {
             window: {inner_size: vec2(540, 960)},
             show_bg: true
             flow: Down,
