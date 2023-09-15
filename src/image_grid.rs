@@ -1,12 +1,12 @@
 use crate::image_box::{Animation, ImageBox, ImageBoxId, IMAGE_WIDTH};
 use crate::makepad_widgets::*;
 
-const ROWS: i32 = 10;
-const COLS: i32 = 10;
+const ROWS: i32 = 40;
+const COLS: i32 = 20;
 
 live_design! {
     import crate::image_box::*;
-    import makepad_widgets::image::Image;
+    import makepad_widgets::base::*;
 
     IMG_1 = dep("crate://self/resources/image_1_5x5.png")
     IMG_2 = dep("crate://self/resources/image_2_5x5.png")
@@ -14,32 +14,30 @@ live_design! {
 
     ImageGrid= {{ImageGrid}} {
         fading_image_box: <ImageBox> {
-            image: <Image> {
+            image: <RotatedImage> {
                 source: (IMG_1)
             }
         }
         scaling_image_box: <ImageBox> {
-            image: <Image> {
+            image: <RotatedImage> {
                 source: (IMG_2)
             }
         }
         rotating_image_box: <ImageBox> {
-            image: <Image> {
+            image: <RotatedImage> {
                 source: (IMG_3)
             }
         }
-        walk: {
-            width: Fill,
-            height: Fill
-        }
+        width: Fill,
+        height: Fill
     }
 }
 
 #[derive(Live)]
 pub struct ImageGrid {
-    #[live]
+    #[walk]
     walk: Walk,
-    #[live]
+    #[layout]
     layout: Layout,
     #[live]
     fading_image_box: Option<LivePtr>,
@@ -64,7 +62,7 @@ impl Widget for ImageGrid {
         });
     }
 
-    fn get_walk(&self) -> Walk {
+    fn walk(&mut self, cx: &mut Cx) -> Walk {
         self.walk
     }
 

@@ -1,8 +1,8 @@
 use makepad_widgets::*;
 
 live_design! {
-    import makepad_widgets::desktop_window::DesktopWindow;
-    import makepad_widgets::frame::*;
+    import makepad_widgets::theme_desktop_dark::*;
+    import makepad_widgets::view::*;
     import makepad_draw::shader::std::*;
 
     import makepad_image_manipulation::image_grid::ImageGrid;
@@ -10,18 +10,16 @@ live_design! {
     COLOR_BG = #FDFDFD
 
     App = {{App}} {
-        ui: <DesktopWindow>{
+        ui: <Window> {
             window: {inner_size: vec2(540, 960)},
             show_bg: true
-            layout: {
-                flow: Down,
-                spacing: 0.0,
-                align: {
-                    x: 0.0,
-                    y: 0.0
-                },
-                padding: {top: 10.0, right: 5.0, bottom: 10.0, left: 5.0}
+            flow: Down,
+            spacing: 0.0,
+            align: {
+                x: 0.0,
+                y: 0.0
             },
+            padding: {top: 10.0, right: 5.0, bottom: 10.0, left: 5.0}
             draw_bg: {
                 fn pixel(self) -> vec4 {
                     return (COLOR_BG)
