@@ -11,6 +11,9 @@ live_design! {
     IMG_1 = dep("crate://self/resources/image_1_5x5.png")
     IMG_2 = dep("crate://self/resources/image_2_5x5.png")
     IMG_3 = dep("crate://self/resources/image_3_5x5.png")
+    // IMG_1 = dep("crate://self/resources/image_1_200x200.jpg")
+    // IMG_2 = dep("crate://self/resources/image_2_200x200.jpg")
+    // IMG_3 = dep("crate://self/resources/image_3_200x200.jpg")
 
     ImageGrid= {{ImageGrid}} {
         fading_image_box: <ImageBox> {
