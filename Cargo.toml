@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-makepad-widgets = { path = "../makepad/widgets", version = "0.5.0" }
+makepad-widgets = { path = "../makepad/widgets", version = "0.6.0" }
