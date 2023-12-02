@@ -1,4 +1,4 @@
-use crate::makepad_widgets::*;
+use makepad_widgets::*;
 pub const IMAGE_WIDTH: f64 = 20.0;
 
 live_design! {

@@ -1,5 +1,5 @@
 use crate::image_box::{Animation, ImageBox, ImageBoxId, IMAGE_WIDTH};
-use crate::makepad_widgets::*;
+use makepad_widgets::*;
 
 const ROWS: i32 = 40;
 const COLS: i32 = 20;
