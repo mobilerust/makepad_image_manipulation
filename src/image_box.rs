@@ -1,5 +1,5 @@
 use makepad_widgets::*;
-pub const IMAGE_WIDTH: f64 = 20.0;
+pub const IMAGE_WIDTH: f64 = 40.0;
 
 live_design! {
     import makepad_draw::shader::std::*;
@@ -60,17 +60,20 @@ live_design! {
     }
 }
 
-#[derive(Live)]
+#[derive(Live, LiveHook, Widget)]
 pub struct ImageBox {
-    #[live]
+    #[live] #[redraw]
     draw_bg: DrawQuad,
     #[live]
     image: Image,
+
+    #[walk]
+    walk: Walk,
     #[layout]
     layout: Layout,
+
     #[animator]
     animator: Animator,
-
     #[rust]
     pub animation: Animation,
 }
@@ -78,27 +81,28 @@ pub struct ImageBox {
 #[derive(Clone, Debug, Default, Eq, Hash, Copy, PartialEq, FromLiveId)]
 pub struct ImageBoxId(pub LiveId);
 
-impl LiveHook for ImageBox {
-    fn before_apply(
-        &mut self,
-        _cx: &mut Cx,
-        _apply_from: ApplyFrom,
-        _index: usize,
-        _nodes: &[LiveNode],
-    ) {
+impl Widget for ImageBox {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, _scope: &mut Scope) {
+        self.animator_handle_event(cx, event);
+
+        if self.animator.need_init() {
+            match self.animation {
+                Animation::Fade => self.animator_play(cx, id!(fade.on)),
+                Animation::Scale => self.animator_play(cx, id!(scale.on)),
+                Animation::Rotate => self.animator_play(cx, id!(rotate.on)),
+            }
+        }
+    }
+
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, _walk: Walk) -> DrawStep {
+        let pos = scope.data.get_mut::<DVec2>();
+        self.draw_abs(cx, *pos);
+
+        DrawStep::done()
     }
 }
 
 impl ImageBox {
-    pub fn handle_event_with(
-        &mut self,
-        cx: &mut Cx,
-        event: &Event,
-        _dispatch_action: &mut dyn FnMut(&mut Cx, ImageBoxAction),
-    ) {
-        self.animator_handle_event(cx, event);
-    }
-
     pub fn draw_abs(&mut self, cx: &mut Cx2d, pos: DVec2) {
         if self.animator.need_init() {
             match self.animation {
@@ -109,9 +113,7 @@ impl ImageBox {
         }
 
         let bg_size = Size::Fixed(IMAGE_WIDTH);
-        _ = self
-            .image
-            .draw_walk_widget(cx, Walk::size(bg_size, bg_size).with_abs_pos(pos));
+        let _ = self.image.draw_walk(cx, Walk::size(bg_size, bg_size).with_abs_pos(pos));
     }
 }
 

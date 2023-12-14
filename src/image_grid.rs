@@ -8,12 +8,12 @@ live_design! {
     import crate::image_box::*;
     import makepad_widgets::base::*;
 
-    IMG_1 = dep("crate://self/resources/image_1_5x5.png")
-    IMG_2 = dep("crate://self/resources/image_2_5x5.png")
-    IMG_3 = dep("crate://self/resources/image_3_5x5.png")
-    // IMG_1 = dep("crate://self/resources/image_1_200x200.jpg")
-    // IMG_2 = dep("crate://self/resources/image_2_200x200.jpg")
-    // IMG_3 = dep("crate://self/resources/image_3_200x200.jpg")
+    // IMG_1 = dep("crate://self/resources/image_1_5x5.png")
+    // IMG_2 = dep("crate://self/resources/image_2_5x5.png")
+    // IMG_3 = dep("crate://self/resources/image_3_5x5.png")
+    IMG_1 = dep("crate://self/resources/image_1_200x200.jpg")
+    IMG_2 = dep("crate://self/resources/image_2_200x200.jpg")
+    IMG_3 = dep("crate://self/resources/image_3_200x200.jpg")
 
     ImageGrid= {{ImageGrid}} {
         fading_image_box: <ImageBox> {
@@ -36,8 +36,10 @@ live_design! {
     }
 }
 
-#[derive(Live)]
+#[derive(Live, WidgetWrap)]
 pub struct ImageGrid {
+    #[rust] #[redraw]
+    area: Area,
     #[walk]
     walk: Walk,
     #[layout]
@@ -53,36 +55,38 @@ pub struct ImageGrid {
 }
 
 impl Widget for ImageGrid {
-    fn handle_widget_event_with(
-        &mut self,
-        cx: &mut Cx,
-        event: &Event,
-        dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
-    ) {
-        let uid = self.widget_uid();
-        self.handle_event_with(cx, event, &mut |cx, action| {
-            dispatch_action(cx, WidgetActionItem::new(action.into(), uid));
-        });
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        for image_box in self.image_boxes.values_mut() {
+            image_box.handle_event(cx, event, scope);
+        }
     }
 
-    fn walk(&mut self, cx: &mut Cx) -> Walk {
-        self.walk
+    fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, _walk: Walk) -> DrawStep {
+        let start_pos = cx.turtle().pos();
+        for (box_id, image_box) in self.image_boxes.iter_mut() {
+            let box_idu64 = box_id.0.get_value();
+            let image_offset = ((IMAGE_WIDTH * IMAGE_WIDTH * 2.0).sqrt() - IMAGE_WIDTH) / 2.0;
+            let mut pos = start_pos
+                + dvec2(
+                    (box_idu64 / 100) as f64 * IMAGE_WIDTH - image_offset,
+                    (box_idu64 % 100) as f64 * IMAGE_WIDTH - image_offset,
+                );
+
+            image_box.draw_all(cx, &mut Scope::with_data(&mut pos));
+        }
+
+        DrawStep::done()
     }
+}
 
-    fn redraw(&mut self, _cx: &mut Cx) {}
-
-    fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
-        self.draw_walk(cx, walk);
-        WidgetDraw::done()
+impl LiveRegister for ImageGrid {
+    fn live_register(cx: &mut Cx) {
+        register_widget!(cx, ImageGrid);
+        crate::image_box::live_design(cx);
     }
 }
 
 impl LiveHook for ImageGrid {
-    fn before_live_design(cx: &mut Cx) {
-        register_widget!(cx, ImageGrid);
-        crate::image_box::live_design(cx);
-    }
-
     fn after_new_from_doc(&mut self, cx: &mut Cx) {
         for y in 0..ROWS {
             for x in 0..COLS {
@@ -117,38 +121,4 @@ impl LiveHook for ImageGrid {
             }
         }
     }
-}
-
-impl ImageGrid {
-    pub fn draw_walk(&mut self, cx: &mut Cx2d, _walk: Walk) {
-        let start_pos = cx.turtle().pos();
-        for (box_id, image_box) in self.image_boxes.iter_mut() {
-            let box_idu64 = box_id.0.get_value();
-            let image_offset = ((IMAGE_WIDTH * IMAGE_WIDTH * 2.0).sqrt() - IMAGE_WIDTH) / 2.0;
-            let pos = start_pos
-                + dvec2(
-                    (box_idu64 / 100) as f64 * IMAGE_WIDTH - image_offset,
-                    (box_idu64 % 100) as f64 * IMAGE_WIDTH - image_offset,
-                );
-            image_box.draw_abs(cx, pos);
-        }
-    }
-
-    pub fn handle_event_with(
-        &mut self,
-        cx: &mut Cx,
-        event: &Event,
-        _dispatch_action: &mut dyn FnMut(&mut Cx, ImageGridAction),
-    ) {
-        let mut actions = Vec::new();
-        for (box_id, image_box) in self.image_boxes.iter_mut() {
-            image_box
-                .handle_event_with(cx, event, &mut |_, action| actions.push((*box_id, action)));
-        }
-    }
-}
-
-#[derive(Clone, WidgetAction)]
-pub enum ImageGridAction {
-    None,
 }
