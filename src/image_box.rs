@@ -62,7 +62,8 @@ live_design! {
 
 #[derive(Live, LiveHook, Widget)]
 pub struct ImageBox {
-    #[live] #[redraw]
+    #[live]
+    #[redraw]
     draw_bg: DrawQuad,
     #[live]
     image: Image,
@@ -113,7 +114,9 @@ impl ImageBox {
         }
 
         let bg_size = Size::Fixed(IMAGE_WIDTH);
-        let _ = self.image.draw_walk(cx, Walk::size(bg_size, bg_size).with_abs_pos(pos));
+        let _ = self
+            .image
+            .draw_walk(cx, Walk::size(bg_size, bg_size).with_abs_pos(pos));
     }
 }
 

@@ -38,7 +38,8 @@ live_design! {
 
 #[derive(Live, WidgetWrap)]
 pub struct ImageGrid {
-    #[rust] #[redraw]
+    #[rust]
+    #[redraw]
     area: Area,
     #[walk]
     walk: Walk,
@@ -114,10 +115,10 @@ impl LiveHook for ImageGrid {
         }
     }
 
-    fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, index: usize, nodes: &[LiveNode]) {
+    fn after_apply(&mut self, cx: &mut Cx, apply: &mut Apply, index: usize, nodes: &[LiveNode]) {
         for image_box in self.image_boxes.values_mut() {
             if let Some(index) = nodes.child_by_name(index, live_id!(image_box).as_field()) {
-                image_box.apply(cx, from, index, nodes);
+                image_box.apply(cx, apply, index, nodes);
             }
         }
     }
