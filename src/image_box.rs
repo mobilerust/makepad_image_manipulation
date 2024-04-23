@@ -96,7 +96,7 @@ impl Widget for ImageBox {
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, _walk: Walk) -> DrawStep {
-        let pos = scope.data.get_mut::<DVec2>();
+        let pos = scope.data.get_mut::<DVec2>().expect("Image Box did not have a position provided");
         self.draw_abs(cx, *pos);
 
         DrawStep::done()
